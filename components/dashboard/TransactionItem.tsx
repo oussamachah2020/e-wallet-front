@@ -3,24 +3,30 @@ import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { theme } from "../../constants/theme";
-import type { Transaction } from "../../types/wallet.types";
+import { TransactionType, type Transaction } from "../../types/wallet.types";
 
 interface TransactionItemProps {
   transaction: Transaction;
   onPress?: () => void;
+  showRecipient?: boolean; // Optional: show who sent/received
 }
 
 export function TransactionItem({
   transaction,
   onPress,
+  showRecipient = true,
 }: TransactionItemProps) {
-  const isCredit = transaction.type === "credit";
+  const isCredit =
+    transaction.type === TransactionType.CREDIT ||
+    transaction.type === TransactionType.DEBIT;
+  const isTransfer = transaction.type === TransactionType.TRANSFER;
 
-  const formatAmount = (amount: number) => {
+  const formatAmount = (amount: number | string) => {
+    const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
-    }).format(amount);
+    }).format(numAmount);
   };
 
   const formatDate = (dateString: string) => {
@@ -48,18 +54,53 @@ export function TransactionItem({
     });
   };
 
-  const getCategoryIcon = (category: string) => {
-    const icons: Record<string, string> = {
-      food: "food",
-      shopping: "shopping",
-      transport: "car",
-      entertainment: "filmstrip",
-      bills: "file-document",
-      transfer: "bank-transfer",
-      salary: "cash",
-      default: "currency-usd",
-    };
-    return icons[category.toLowerCase()] || icons.default;
+  const getTransactionIcon = () => {
+    switch (transaction.type) {
+      case TransactionType.CREDIT:
+        return "arrow-down-circle";
+      case TransactionType.DEBIT:
+      case "transfer":
+        return isCredit ? "arrow-down-circle" : "arrow-up-circle";
+      default:
+        return "currency-usd";
+    }
+  };
+
+  const getTransactionTitle = () => {
+    if (transaction.description) {
+      return transaction.description;
+    }
+
+    switch (transaction.type) {
+      case "credit":
+        return "Money Received";
+      case "debit":
+        return "Money Sent";
+      case TransactionType.DEBIT:
+        return "Wallet Funded";
+      case "transfer":
+        return isCredit ? "Money Received" : "Money Sent";
+      default:
+        return "Transaction";
+    }
+  };
+
+  const getTransactionSubtitle = () => {
+    const parts = [];
+
+    // Transaction type
+    parts.push(
+      transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)
+    );
+
+    // Reference number (shortened)
+    if (transaction.reference) {
+      const shortRef =
+        transaction.reference.split("-").pop() || transaction.reference;
+      parts.push(shortRef);
+    }
+
+    return parts.join(" • ");
   };
 
   return (
@@ -67,6 +108,7 @@ export function TransactionItem({
       onPress={onPress}
       style={({ pressed }) => [styles.container, pressed && styles.pressed]}
     >
+      {/* Icon */}
       <View
         style={[
           styles.iconContainer,
@@ -78,23 +120,24 @@ export function TransactionItem({
         ]}
       >
         <MaterialCommunityIcons
-          name={getCategoryIcon(transaction.category) as any}
+          name={getTransactionIcon() as any}
           size={24}
           color={isCredit ? theme.colors.success : theme.colors.error}
         />
       </View>
 
+      {/* Details */}
       <View style={styles.details}>
         <Text style={styles.description} numberOfLines={1}>
-          {transaction.description}
+          {getTransactionTitle()}
         </Text>
         <View style={styles.metaRow}>
-          <Text style={styles.category}>{transaction.category}</Text>
-          <Text style={styles.separator}>•</Text>
-          <Text style={styles.date}>{formatDate(transaction.date)}</Text>
+          <Text style={styles.subtitle}>{getTransactionSubtitle()}</Text>
         </View>
+        <Text style={styles.date}>{formatDate(transaction.createdAt)}</Text>
       </View>
 
+      {/* Amount & Status */}
       <View style={styles.amountContainer}>
         <Text
           style={[
@@ -108,6 +151,16 @@ export function TransactionItem({
         {transaction.status === "pending" && (
           <View style={styles.statusBadge}>
             <Text style={styles.statusText}>Pending</Text>
+          </View>
+        )}
+        {transaction.status === "completed" && (
+          <View style={styles.completedBadge}>
+            <MaterialCommunityIcons
+              name="check-circle"
+              size={12}
+              color={theme.colors.success}
+            />
+            <Text style={styles.completedText}>Completed</Text>
           </View>
         )}
       </View>
@@ -142,21 +195,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 2,
   },
-  category: {
-    fontSize: 12,
+  subtitle: {
+    fontSize: 13,
     color: theme.colors.textSecondary,
-    textTransform: "capitalize",
-  },
-  separator: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginHorizontal: 6,
+    fontWeight: "500",
   },
   date: {
     fontSize: 12,
@@ -166,19 +215,34 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   amount: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "bold",
     marginBottom: 4,
   },
   statusBadge: {
     backgroundColor: theme.colors.warning + "20",
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
   },
   statusText: {
     fontSize: 10,
     color: theme.colors.warning,
+    fontWeight: "600",
+    textTransform: "uppercase",
+  },
+  completedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: theme.colors.success + "10",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  completedText: {
+    fontSize: 10,
+    color: theme.colors.success,
     fontWeight: "600",
   },
 });

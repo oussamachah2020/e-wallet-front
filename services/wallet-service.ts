@@ -1,17 +1,13 @@
-import { Transaction, TransactionDto } from "@/types/wallet.types";
 import { walletApi } from "./api";
 
-export const transactionService = {
-  async sendFundToRecipient(transaction: TransactionDto) {
+export const walletService = {
+  async getWallet() {
     try {
-      const { data, status } = await walletApi.post(
-        `/transactions/transfer`,
-        transaction
-      );
+      const { data, status } = await walletApi.get(`/wallets/user`);
 
       return data;
     } catch (error: any) {
-      console.error("❌ Failed to find recipients:", {
+      console.error("❌ Failed to get wallet:", {
         status: error.response?.status,
         statusText: error.response?.statusText,
         data: error.response?.data,
@@ -21,7 +17,7 @@ export const transactionService = {
       // Extract error message from backend response
       const errorData = error.response?.data || {};
       const errorMessage =
-        errorData.message || error.message || "Sign up failed";
+        errorData.message || error.message || "Get wallet failed";
 
       // Create a custom error with the backend message
       const customError = new Error(errorMessage);
@@ -32,15 +28,13 @@ export const transactionService = {
     }
   },
 
-  async getTransactionsHistory() {
+  async createWallet() {
     try {
-      const { data, status } = await walletApi.get<Transaction[]>(
-        `/transactions/history`
-      );
+      const { data, status } = await walletApi.post(`/wallets/create`);
 
       return data;
     } catch (error: any) {
-      console.error("❌ Failed to find recipients:", {
+      console.error("❌ Failed to get wallet:", {
         status: error.response?.status,
         statusText: error.response?.statusText,
         data: error.response?.data,
@@ -50,7 +44,7 @@ export const transactionService = {
       // Extract error message from backend response
       const errorData = error.response?.data || {};
       const errorMessage =
-        errorData.message || error.message || "Sign up failed";
+        errorData.message || error.message || "Get wallet failed";
 
       // Create a custom error with the backend message
       const customError = new Error(errorMessage);

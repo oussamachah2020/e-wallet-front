@@ -137,7 +137,7 @@ export default function ProtectedLayout() {
       />
 
       <Drawer.Screen
-        name="send"
+        name="history"
         options={{
           drawerLabel: "All Transactions",
           headerShown: true,
@@ -152,21 +152,21 @@ export default function ProtectedLayout() {
         }}
       />
 
-      {/* <Drawer.Screen
+      <Drawer.Screen
         name="send"
         options={{
-          drawerLabel: "Recipients",
+          drawerLabel: "New Transaction",
           headerShown: true,
           title: "My Recipients",
           drawerIcon: ({ color, size }) => (
             <MaterialCommunityIcons
-              name="account-group"
+              name="plus-box-multiple"
               size={size}
               color={color}
             />
           ),
         }}
-      /> */}
+      />
 
       <Drawer.Screen
         name="analytics"

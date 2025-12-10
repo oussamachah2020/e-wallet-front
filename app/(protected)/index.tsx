@@ -2,62 +2,71 @@ import { BalanceCard } from "@/components/dashboard/BalanceCard";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { theme } from "@/constants/theme";
+import { transactionService } from "@/services/transaction-service";
+import { walletService } from "@/services/wallet-service";
 import { useAuthStore } from "@/store/auth-store";
+import { useWalletStore } from "@/store/wallet-store";
 import { Transaction } from "@/types/wallet.types";
 import { DrawerActions } from "@react-navigation/native";
-import { useNavigation } from "expo-router";
-import React from "react";
+import { router, useNavigation } from "expo-router";
+import { useEffect, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { IconButton } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// Mock data
-const MOCK_WALLET = {
-  balance: 12847.5,
-  currency: "USD",
-  accountNumber: "4532123456789012",
-};
-
-const MOCK_TRANSACTIONS: Transaction[] = [
-  {
-    id: "1",
-    type: "credit",
-    amount: 2500.0,
-    description: "Salary Payment",
-    category: "Salary",
-    date: new Date().toISOString(),
-    status: "completed",
-  },
-  {
-    id: "2",
-    type: "debit",
-    amount: 45.99,
-    description: "Grocery Shopping",
-    category: "Shopping",
-    date: new Date(Date.now() - 3600000).toISOString(),
-    status: "completed",
-  },
-  {
-    id: "3",
-    type: "debit",
-    amount: 120.0,
-    description: "Restaurant Bill",
-    category: "Food",
-    date: new Date(Date.now() - 7200000).toISOString(),
-    status: "completed",
-  },
-];
-
 export default function HomeScreen() {
   const navigation = useNavigation();
   const { user } = useAuthStore();
-  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const { wallet, setWallet } = useWalletStore();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    let data = await walletService.getWallet();
+    setWallet(data);
+
     setRefreshing(false);
   };
+
+  useEffect(() => {
+    if (wallet) return;
+
+    async function getUserWallet() {
+      try {
+        let data = await walletService.getWallet();
+
+        if (!data) {
+          await walletService.createWallet();
+          data = await walletService.getWallet();
+        }
+
+        setWallet(data);
+      } catch (error) {
+        console.error("Failed to get/create wallet:", error);
+      }
+    }
+
+    getUserWallet();
+  }, [wallet]);
+
+  useEffect(() => {
+    if (wallet) return;
+
+    async function getTransactions() {
+      try {
+        const data = await transactionService.getTransactionsHistory();
+
+        console.log(data);
+
+        setTransactions(data.slice(0, 3));
+      } catch (error) {
+        console.error("Failed to get transactions history:", error);
+      }
+    }
+
+    getTransactions();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -100,9 +109,9 @@ export default function HomeScreen() {
       >
         {/* Balance Card */}
         <BalanceCard
-          balance={MOCK_WALLET.balance}
-          accountNumber={MOCK_WALLET.accountNumber}
-          currency={MOCK_WALLET.currency}
+          balance={Number(wallet?.balance)}
+          accountNumber={wallet?.accountNumber || ""}
+          currency={"USD"}
           onRefresh={handleRefresh}
         />
 
@@ -111,11 +120,9 @@ export default function HomeScreen() {
 
         {/* Recent Transactions */}
         <RecentTransactions
-          transactions={MOCK_TRANSACTIONS}
-          onTransactionPress={(transaction) =>
-            console.log("Transaction:", transaction)
-          }
-          onViewAll={() => console.log("View all")}
+          transactions={transactions}
+          onTransactionPress={(transaction) => console.log("Transaction")}
+          onViewAll={() => router.push("/history")}
         />
 
         {/* Bottom Spacing */}
