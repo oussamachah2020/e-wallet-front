@@ -63,21 +63,6 @@ export function RecipientSearch({ selectedRecipient }: RecipientSearchProps) {
     router.push("/(protected)/transfer");
   };
 
-  const handleAddNewRecipient = async (data: any) => {
-    setAddingRecipient(true);
-    try {
-      // const newRecipient = await transactionService.addRecipient(data);
-      setShowAddForm(false);
-      // handleSelectRecipient(newRecipient);
-      // Refresh recent recipients
-      await loadRecentRecipients();
-    } catch (error) {
-      console.error("Failed to add recipient:", error);
-    } finally {
-      setAddingRecipient(false);
-    }
-  };
-
   const getInitials = (name: string = "John Doe") => {
     return name
       .split(" ")

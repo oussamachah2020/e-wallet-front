@@ -49,8 +49,6 @@ export default function AddRecipientScreen() {
         data.accountNumber
       );
 
-      console.log(results);
-
       setFoundRecipient(results);
       toast("Recipient found!");
     } catch (error: any) {
@@ -69,7 +67,6 @@ export default function AddRecipientScreen() {
           foundRecipient?.accountNumber
         );
 
-        console.log(results);
         toast("Recipient found!");
         toast.success(
           `${foundRecipient.fullName || "John Doe"} added successfully!`

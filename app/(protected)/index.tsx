@@ -1,10 +1,12 @@
 import { BalanceCard } from "@/components/dashboard/BalanceCard";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
+import { PinModal } from "@/components/pin-modal";
+import { TransactionDetailsModal } from "@/components/transaction-details-modal";
+import { WalletQRModal } from "@/components/wallet-qrcode-modal";
 import { theme } from "@/constants/theme";
 import { transactionService } from "@/services/transaction-service";
 import { walletService } from "@/services/wallet-service";
-import { useAuthStore } from "@/store/auth-store";
 import { useWalletStore } from "@/store/wallet-store";
 import { Transaction } from "@/types/wallet.types";
 import { DrawerActions } from "@react-navigation/native";
@@ -16,10 +18,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const navigation = useNavigation();
-  const { user } = useAuthStore();
   const [refreshing, setRefreshing] = useState(false);
   const { wallet, setWallet } = useWalletStore();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isVisible, setIsVisible] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<Transaction | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -27,6 +33,11 @@ export default function HomeScreen() {
     setWallet(data);
 
     setRefreshing(false);
+  };
+
+  const handleTransactionPress = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setShowDetailsModal(true);
   };
 
   useEffect(() => {
@@ -57,8 +68,6 @@ export default function HomeScreen() {
       try {
         const data = await transactionService.getTransactionsHistory();
 
-        console.log(data);
-
         setTransactions(data.slice(0, 3));
       } catch (error) {
         console.error("Failed to get transactions history:", error);
@@ -66,7 +75,13 @@ export default function HomeScreen() {
     }
 
     getTransactions();
-  }, []);
+  }, [wallet]);
+
+  useEffect(() => {
+    if (wallet && !wallet.hasPin) {
+      setIsVisible(true);
+    }
+  }, [wallet]);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -90,12 +105,16 @@ export default function HomeScreen() {
             icon="qrcode-scan"
             size={24}
             iconColor={theme.colors.text}
-            onPress={() => console.log("Scan QR")}
+            onPress={() => setShowQRModal(true)}
           />
         </View>
       </View>
+      <PinModal
+        visible={isVisible}
+        onDismiss={() => setIsVisible(false)}
+        onSuccess={() => setIsVisible(false)}
+      />
 
-      {/* Scrollable Content */}
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -107,7 +126,6 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* Balance Card */}
         <BalanceCard
           balance={Number(wallet?.balance)}
           accountNumber={wallet?.accountNumber || ""}
@@ -115,19 +133,26 @@ export default function HomeScreen() {
           onRefresh={handleRefresh}
         />
 
-        {/* Quick Actions */}
         <QuickActions />
 
-        {/* Recent Transactions */}
         <RecentTransactions
           transactions={transactions}
-          onTransactionPress={(transaction) => console.log("Transaction")}
+          onTransactionPress={handleTransactionPress}
           onViewAll={() => router.push("/history")}
         />
 
-        {/* Bottom Spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
+      <TransactionDetailsModal
+        visible={showDetailsModal}
+        transaction={selectedTransaction}
+        onDismiss={() => setShowDetailsModal(false)}
+      />
+      <WalletQRModal
+        visible={showQRModal}
+        onDismiss={() => setShowQRModal(false)}
+        walletData={wallet}
+      />
     </SafeAreaView>
   );
 }

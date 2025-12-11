@@ -18,12 +18,20 @@ export interface Transaction {
   description: string;
   category: string;
   createdAt: string;
-
+  toWalletId?: string;
+  completedAt: string;
+  metadata: Record<string, any> | null;
+  fromWalletId: string;
   recipient?: {
     name: string;
     avatar?: string;
   };
   status: TransactionStatus;
+}
+
+export interface SetPinDto {
+  pin: string;
+  confirmPin: string;
 }
 
 export enum WalletStatus {
@@ -35,6 +43,7 @@ export interface Wallet {
   id: string;
   balance: number;
   currency: string;
+  hasPin: boolean;
   status: WalletStatus;
   accountNumber: string;
 }

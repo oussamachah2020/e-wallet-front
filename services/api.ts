@@ -33,6 +33,17 @@ const requestInterceptor = async (config: {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  if (config.url?.includes("verify-pin")) {
+    console.log("🔍 VERIFY-PIN REQUEST DEBUG:");
+    console.log("URL:", config.url);
+    console.log("Method:", config.method);
+    console.log("Body (config.data):", JSON.stringify(config.data));
+    console.log("Body type:", typeof config.data);
+    console.log("Body keys:", config.data ? Object.keys(config.data) : "null");
+    console.log("Headers:", config.headers);
+  }
+
   return config;
 };
 
@@ -40,6 +51,7 @@ const requestInterceptor = async (config: {
 const responseInterceptor = async (error: any) => {
   const originalRequest = error.config;
 
+  // ✅ Only retry on 401 (Unauthorized), NOT on 400 (Bad Request)
   if (error.response?.status === 401 && !originalRequest._retry) {
     originalRequest._retry = true;
 
@@ -48,19 +60,29 @@ const responseInterceptor = async (error: any) => {
 
       // Refresh using auth service
       const { data } = await axios.post(`${AUTH_API_URL}/auth/refresh`, {
-        refreshToken,
+        token: refreshToken,
       });
 
       await storage.setAccessToken(data.accessToken);
 
-      // Retry original request with new token
-      originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+      // ✅ IMPORTANT: Preserve original request body
+      // Don't let the refresh token overwrite the original data
+      const newToken = data.accessToken;
+
+      // Clone the original request config
+      const retryConfig = {
+        ...originalRequest,
+        headers: {
+          ...originalRequest.headers,
+          Authorization: `Bearer ${newToken}`,
+        },
+      };
 
       // Determine which API to use
       if (originalRequest.baseURL === AUTH_API_URL) {
-        return authApi(originalRequest);
+        return authApi(retryConfig);
       } else {
-        return walletApi(originalRequest);
+        return walletApi(retryConfig);
       }
     } catch (refreshError) {
       await storage.clearAuth();

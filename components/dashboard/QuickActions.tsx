@@ -18,7 +18,7 @@ const QUICK_ACTIONS: QuickAction[] = [
     id: "1",
     title: "Receive",
     icon: "arrow-bottom-left",
-    route: "/(protected)/request",
+    route: "/(protected)/fund-wallet",
     isPrimary: false,
   },
   {

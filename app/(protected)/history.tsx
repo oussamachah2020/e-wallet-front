@@ -23,6 +23,7 @@ import { transactionService } from "@/services/transaction-service";
 import { TransactionItem } from "../../components/dashboard/TransactionItem";
 import { theme } from "../../constants/theme";
 import type { Transaction } from "../../types/wallet.types";
+import { TransactionDetailsModal } from "@/components/transaction-details-modal";
 
 type TransactionType = "all" | "credit" | "debit" | "transfer";
 type TransactionStatus = "all" | "completed" | "pending" | "failed";
@@ -40,6 +41,9 @@ export default function AllTransactionsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<Transaction | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   // Filters
   const [typeFilter, setTypeFilter] = useState<TransactionType>("all");
@@ -52,6 +56,11 @@ export default function AllTransactionsScreen() {
   const [dateRange, setDateRange] = useState<
     "all" | "today" | "week" | "month"
   >("all");
+
+  const handleTransactionPress = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setShowDetailsModal(true);
+  };
 
   useEffect(() => {
     loadTransactions();
@@ -96,7 +105,7 @@ export default function AllTransactionsScreen() {
       filtered = filtered.filter(
         (t) =>
           t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          t.reference?.toLowerCase().includes(searchQuery.toLowerCase())
+          t.reference?.toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }
 
@@ -347,7 +356,7 @@ export default function AllTransactionsScreen() {
         renderItem={({ item }) => (
           <TransactionItem
             transaction={item}
-            onPress={() => console.log("Transaction:", item.id)}
+            onPress={handleTransactionPress}
           />
         )}
         ListHeaderComponent={renderHeader}
@@ -379,7 +388,11 @@ export default function AllTransactionsScreen() {
               />
             </Pressable>
           </View>
-
+          <TransactionDetailsModal
+            visible={showDetailsModal}
+            transaction={selectedTransaction}
+            onDismiss={() => setShowDetailsModal(false)}
+          />
           <View style={styles.modalContent}>
             {/* Type Filter */}
             <View style={styles.filterSection}>

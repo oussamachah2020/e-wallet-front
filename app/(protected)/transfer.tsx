@@ -13,10 +13,12 @@ import { Button, Modal, Portal, Text, TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
 
+import { PinModal } from "@/components/pin-modal";
 import { AmountInput } from "@/components/send/AmountInput";
 import { theme } from "@/constants/theme";
 import { recipientService } from "@/services/recipient-service";
 import { transactionService } from "@/services/transaction-service";
+import { walletService } from "@/services/wallet-service";
 import { useTransactionStore } from "@/store/transaction-store";
 import { Recipient } from "@/types/transaction.types";
 
@@ -37,6 +39,7 @@ export default function TransferScreen() {
   const [walletBalance] = useState(MOCK_WALLET.balance);
   const [transactionId, setTransactionId] = useState("");
   const { recipientId } = useTransactionStore();
+  const [showPinModal, setShowPinModal] = useState(false);
 
   const validateAmount = () => {
     const numAmount = parseFloat(amount);
@@ -104,11 +107,38 @@ export default function TransferScreen() {
       return;
     }
 
+    // Show PIN modal instead of processing immediately
+    setShowPinModal(true);
+  };
+
+  const handlePinVerified = async (pin: string) => {
+    console.log("🔐 Verifying PIN:", pin);
     setLoading(true);
 
     try {
+      // Step 1: Verify PIN with backend
+      const isValid = await walletService.verifyPin(pin);
+
+      console.log("✅ PIN verification result:", isValid);
+
+      if (!isValid) {
+        // PIN is incorrect - show error but don't close modal
+        toast.error("Invalid PIN", {
+          description: "The PIN you entered is incorrect. Please try again.",
+        });
+
+        setLoading(false);
+        // Keep modal open so user can try again
+        return;
+      }
+
+      // Step 2: PIN is valid - close modal
+      setShowPinModal(false);
+      toast.success("PIN verified successfully");
+
+      // Step 3: Process transaction
       const transaction = {
-        toUserId: recipient.recipientUserId,
+        toUserId: recipient!.recipientUserId,
         amount: parseFloat(amount),
         description: description || undefined,
       };
@@ -116,18 +146,19 @@ export default function TransferScreen() {
       const response =
         await transactionService.sendFundToRecipient(transaction);
 
-      // Store transaction ID for success modal
+      // Step 4: Show success
       setTransactionId(response.id || "");
-
-      // Show success modal
       setShowSuccessModal(true);
 
-      // Show success toast
       toast.success("Transfer Successful", {
-        description: `$${amount} sent successfully to ${recipient.fullName || "john Doe"}`,
+        description: `$${amount} sent successfully to ${recipient?.fullName || "John Doe"}`,
       });
     } catch (error: any) {
-      console.error("Transfer error:", error);
+      console.error("❌ Transfer error:", error);
+
+      // Close PIN modal on network/server error
+      setShowPinModal(false);
+
       toast.error("Transfer Failed", {
         description:
           error.message || "Failed to complete transfer. Please try again.",
@@ -271,7 +302,14 @@ export default function TransferScreen() {
           </Button>
         </View>
       </KeyboardAvoidingView>
-
+      <PinModal
+        visible={showPinModal}
+        onDismiss={() => setShowPinModal(false)}
+        onSuccess={handlePinVerified}
+        mode="verify"
+        title="Verify PIN"
+        subtitle="Enter your 4-digit PIN to confirm this transaction"
+      />
       {/* Success Modal */}
       <Portal>
         <Modal

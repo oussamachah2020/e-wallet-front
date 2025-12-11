@@ -140,7 +140,7 @@ export default function ProtectedLayout() {
         name="history"
         options={{
           drawerLabel: "All Transactions",
-          headerShown: true,
+          headerShown: false,
           title: "Transactions",
           drawerIcon: ({ color, size }) => (
             <MaterialCommunityIcons
@@ -161,6 +161,22 @@ export default function ProtectedLayout() {
           drawerIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="plus-box-multiple"
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      <Drawer.Screen
+        name="fund-wallet"
+        options={{
+          drawerLabel: "Add Funds",
+          headerShown: true,
+          title: "Wallet Funding",
+          drawerIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="cash-plus"
               size={size}
               color={color}
             />

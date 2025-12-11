@@ -7,7 +7,7 @@ import { TransactionType, type Transaction } from "../../types/wallet.types";
 
 interface TransactionItemProps {
   transaction: Transaction;
-  onPress?: () => void;
+  onPress?: (transaction: Transaction) => void; // ✅ Pass transaction to onPress
   showRecipient?: boolean; // Optional: show who sent/received
 }
 
@@ -90,7 +90,7 @@ export function TransactionItem({
 
     // Transaction type
     parts.push(
-      transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)
+      transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1),
     );
 
     // Reference number (shortened)
@@ -105,7 +105,7 @@ export function TransactionItem({
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => onPress?.(transaction)}
       style={({ pressed }) => [styles.container, pressed && styles.pressed]}
     >
       {/* Icon */}

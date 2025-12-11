@@ -1,4 +1,3 @@
-import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -13,17 +12,8 @@ import { RecipientSearch } from "../../components/send/RecipientSearch";
 import { theme } from "../../constants/theme";
 import type { Recipient } from "../../types/transaction.types";
 
-// Mock wallet data - will be replaced with actual wallet store later
-const MOCK_WALLET = {
-  balance: 12847.5,
-  currency: "USD",
-};
-
 export default function SendMoneyScreen() {
-  const router = useRouter();
   const [recipient, setRecipient] = useState<Recipient | undefined>();
-  const [recipientId, setRecipientId] = useState<string | null>(null);
-  const [walletBalance] = useState(MOCK_WALLET.balance);
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
